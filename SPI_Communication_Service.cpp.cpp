@@ -148,8 +148,11 @@ void SPI_Communication::read_device(int requisitionCode, int readLength)
     }
 }
 
-/*
-Falta colocar os cabeçalhos das funções abaixo
+/******************* set_operation_mode **************************
+******************************************************************
+Operation: Configures the SPI mode;
+Input Parameters: SPI operating mode;
+Output: Message in case of error;
 */
 int SPI_Communication::set_operation_mode(int operationMode)
 {
@@ -169,6 +172,12 @@ int SPI_Communication::set_operation_mode(int operationMode)
 	return 0;
 }
 
+/******************* set_communication_speed **************************
+***********************************************************************
+Operation: Configures the SPI communication speed;
+Input Parameters: SPI communication speed;
+Output: Message in case of error;
+*/
 int SPI_Communication::set_communication_speed(uint32_t communicationSpeed)
 {
     this->communicationSpeed = communicationSpeed;
@@ -188,6 +197,12 @@ int SPI_Communication::set_communication_speed(uint32_t communicationSpeed)
 	return 0;
 }
 
+/******************* set_bits_per_word **************************
+*****************************************************************
+Operation: Configures the number of bits per word;
+Input Parameters: Bits per word;
+Output: Message in case of error;
+*/
 int SPI_Communication::set_bits_per_word(uint8_t bitsPerWord)
 {
     this->bitsPerWord = bitsPerWord;
@@ -206,9 +221,14 @@ int SPI_Communication::set_bits_per_word(uint8_t bitsPerWord)
 	return 0
 }
 
+/******************* close_spi_communication **************************
+***********************************************************************
+Operation: Closes communication with the SPI;
+Input Parameters: Nothing;
+Output: Nothing;
+*/
 void SPI_Communication::close_spi_communication()
 {
     ::close(this->fileName);
     this->fileName = -1;
 }
-
