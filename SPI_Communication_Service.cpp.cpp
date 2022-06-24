@@ -11,7 +11,7 @@ SPI_Communication::SPI_Communication(unsigned int channel, unsigned int device, 
 	this->bitsPerWord = bitsPerWord;
 	this->communicationSpeed = communicationSpeed;
 	this->communicationDelay = communicationDelay;
-	this->spi_channel_communication();
+	this->spi_channel_configuration();
 }
 
 // Default destructor
