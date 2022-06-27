@@ -37,10 +37,10 @@ public:
     void disable_device_communication(int devicePinSelector);
 
     // Select RaspberryPi's SPI channel and send the menssage
-    void write_device();
+    void write_device(int data, int writeLength);
 
     // Select RaspberryPi's SPI channel and read data from device
-    void read_device();
+    void read_device(int requisitionCode, int readLength);
 private:
     unsigned int channel;
     unsigned int device;
