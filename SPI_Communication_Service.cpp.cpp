@@ -23,7 +23,7 @@ SPI_Communication::~SPI_Communication()
 
 /******************* spi_channel_configuration **************************
 *************************************************************************
-Operation: Configure the SPI channel according to the parameters;
+Operation: Configure the SPI channel;
 Input Parameters: Nothing;
 Output: Status of configuration.
 */
