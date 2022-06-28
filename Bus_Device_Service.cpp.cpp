@@ -6,6 +6,6 @@ BUS_Device::BUS_Device(unsigned int bus, unsigned int device){
     this->file=-1;   
 }
 
-DUS_Device::~BUS_Device(){
+BUS_Device::~BUS_Device(){
     
 }
