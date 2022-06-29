@@ -5,7 +5,7 @@ class BUS_Device
 {
 public:
     // Constructor
-    BUS_Device(unsigned int bus, unsigned int device);
+    BUS_Device(unsigned int channel, unsigned int device);
 
     // Destructor
     virtual ~BUS_Device();
@@ -32,7 +32,7 @@ public:
     virtual void debug_dump_registers_device(unsigned int number = 0xff) = 0;
 
 protected:
-    unsigned int bus;
+    unsigned int channel;
     unsigned int device;
     int file;
 };

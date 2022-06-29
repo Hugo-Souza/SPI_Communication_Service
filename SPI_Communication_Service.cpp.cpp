@@ -1,225 +1,198 @@
 #include "SPI_Communication_Service.h"
 
 
-// Default construction
-SPI_Communication::SPI_Communication(unsigned int channel, unsigned int device, int operationMode, uint8_t bitsPerWord, uint32_t communicationSpeed, uint16_t communicationDelay)
+SPI_Communication::SPI_Communication(unsigned int channel, unsigned int device, SPI_Communication::SPI_mode operationMode, uint8_t bitsPerWord, uint32_t communicationSpeed, uint16_t communicationDelay):BUS_Device(channel, device)
 {
     stringstream s;
     s << SPI_PATH << channel << "." << device;
     this->fileName = string(s.str());
-	this->operationMode = operationMode;
-	this->bitsPerWord = bitsPerWord;
-	this->communicationSpeed = communicationSpeed;
-	this->communicationDelay = communicationDelay;
-	this->spi_channel_configuration();
+    this->operationMode = operationMode;
+    this->bitsPerWord = bitsPerWord;
+    this->communicationDelay = communicationDelay;
+    this->communicationSpeed = communicationSpeed;
+    this->open_connection();
 }
 
-// Default destructor
 SPI_Communication::~SPI_Communication()
 {
-    this->close_spi_communication();
+    this->close_connection();
 }
 
-
-/******************* spi_channel_configuration **************************
-*************************************************************************
-Operation: Configure the SPI channel;
-Input Parameters: Nothing;
-Output: Status of configuration.
-*/
-int SPI_Communication::spi_channel_configuration()
+int SPI_Communication::open_connection()
 {
-    int error;
-
-    this->fileDescriptor = ::open(this->fileName.c_str(), O_RDWR);
-    if(this->fileDescriptor < 0){
+    if((this->file = ::open(fileName.c_str(), O_RDWR)) < 0){
         perror("SPI: Can't open device.");
         return -1;
     }
-	
-    error = this->set_operation_mode(this->operationMode);
-    if(error < 0){
+    if(this->set_operation_mode(this->operationMode) < 0){
         perror("SPI: Can't set operation mode.");
         return -1;
+    } 
+    if(this->set_bits_per_word(this->bitsPerWord) < 0){
+        perror("SPI: Can't set bits per word.");
+        return -1;
     }
-
-    error = this->set_communication_speed(this->communicationSpeed);
-    if(error < 0){
+    if(this->set_communication_speed(this->communicationSpeed) < 0){
         perror("SPI: Can't set communication speed.");
         return -1;
     }
 
-    error = this->set_bits_per_word(this->bitsPerWord);
-    if(error < 0){
-        perror("SPI: Can't set bits per word.");
-        return -1;
-    }
+    return 0;
+}
 
+void SPI_Communication::close_connection()
+{
+    ::close(this->file);
+    this->file = -1;
+}
+
+void SPI_Communication::enable_device_communication(unsigned int devicePinSelector)
+{
+    wiringPiSetup();
+
+    pinMode(devicePinSelector,OUTPUT);
+
+    digitalWrite(devicePinSelector,LOW);
+}
+
+void SPI_Communication::disable_device_communication(unsigned int devicePinSelector)
+{
+    wiringPiSetup();
+
+    pinMode(devicePinSelector,OUTPUT);
+
+    digitalWrite(devicePinSelector,HIGH);
+}
+
+int SPI_Communication::transfer_message(unsigned char sendMessage[], unsigned char receiveMessage[], int lengthMessage)
+{
+    struct spi_ioc_transfer transfer;
+    transfer.tx_buf = (unsigned long) sendMessage;
+	transfer.rx_buf = (unsigned long) receiveMessage;
+    transfer.len = lengthMessage;
+    transfer.speed_hz = this->communicationSpeed;
+	transfer.bits_per_word = this->bitsPerWord;
+	transfer.delay_usecs = this->communicationDelay;
+    int status = ioctl(this->file, SPI_IOC_MESSAGE(1), &transfer);
+	if (status < 0) {
+		perror("SPI: SPI_IOC_MESSAGE Failed");
+		return -1;
+	}
+	return status;
+}
+
+unsigned char SPI_Communication::read_register_device(unsigned int registerAddress)
+{
+    unsigned char sendMessage[2], receiveMessage[2];
+	memset(sendMessage, 0, sizeof sendMessage);
+	memset(receiveMessage, 0, sizeof receiveMessage);
+	sendMessage[0] = (unsigned char) (0x80 + registerAddress);
+	this->transfer_message(sendMessage, receiveMessage, 2);
+    //cout << "The value that was received is: " << (int) receive[1] << endl;
+	return receiveMessage[1];
+}
+
+unsigned char* SPI_Communication::read_registers_device(unsigned int number, unsigned int fromAddress=0)
+{
+    unsigned char* data = new unsigned char[number];
+	unsigned char sendMessage[number+1], receiveMessage[number+1];
+	memset(sendMessage, 0, sizeof sendMessage);
+	sendMessage[0] =  (unsigned char) (0x80 + 0x40 + fromAddress); //set read bit and MB bit
+	this->transfer_message(sendMessage, receiveMessage, number+1);
+	memcpy(data, receiveMessage+1, number);  //ignore the first (address) byte in the array returned
+	return data;
+}
+
+int SPI_Communication::write_register_device(unsigned int registerAddress, unsigned char value)
+{
+    unsigned char sendMessage[2], receiveMessage[2];
+	memset(receiveMessage, 0, sizeof receiveMessage);
+	sendMessage[0] = (unsigned char) registerAddress;
+	sendMessage[1] = value;
+	//cout << "The value that was written is: " << (int) send[1] << endl;
+	this->transfer_message(sendMessage, receiveMessage, 2);
 	return 0;
 }
 
-/******************* enable_device_communication **************************
-***************************************************************************
-Operation: Select the SPI device from GPio pin to enable communication, changing to low level;
-Input Parameters: Pin of RaspberryPi GPio;
-Output: Nothing;
-*/
-void SPI_Communication::enable_device_communication(int devicePinSelector)
+int SPI_Communication::write_device(unsigned char value)
 {
-    // Activate the library
-    wiringPiSetup();
-
-    // Activate pin as OUTPUT
-    pinMode(devicePinSelector, OUTPUT);
-
-    // To disable the pin, it is passed from HIGH to LOW level
-    digitalWrite(devicePinSelector, LOW);
+    unsigned char null_return = 0x00;
+	this->transfer_message(&value, &null_return, 1);
+	return 0;
 }
 
-
-/******************* disable_device_communication **************************
-****************************************************************************
-Operation: Select the SPI device from GPio pin to disable communication, changing to high level;
-Input Parameters: Pin of RaspberryPi GPio;
-Output: Nothing;
-*/
-void SPI_Communication::disable_device_communication(int devicePinSelector)
+int SPI_Communication::write_device(unsigned char value[], int length)
 {
-    // Activate the library
-    wiringPiSetup();
-    
-    // Activate pin as OUTPUT
-    pinMode(devicePinSelector, OUTPUT);
-
-    // To disable the pin, it is passed from LOW to HIGH level
-    digitalWrite(devicePinSelector, HIGH); 
+    unsigned char null_return = 0x00;
+	this->transfer_message(value, &null_return, length);
+	return 0;
 }
 
-/******************* write_device **************************
-************************************************************
-Operation: Select RaspberryPi's SPI channel and send the menssage;
-Input Parameters: data and length of data to be written;
-Output: Message in case of error;
-*/
-
-void SPI_Communication::write_device(int data, int writeLength)
+int SPI_Communication::set_operation_mode(SPI_Communication::SPI_mode operationMode)
 {
-    // Input and Output Control Structure
-    struct spi_ioc_transfer spiMessage[1];
-
-    // Store in memory
-    memset(spiMessage, 0, sizeof(spiMessage));
-
-    // Configures the structure with the values of the data and its length to be written by the device
-    spiMessage[0].tx_buf = (unsigned long)data;
-    spiMessage[0].len = writeLength;    
-
-    // Writes the data and prints a message in case of error
-    if (ioctl(m_spifd, SPI_IOC_MESSAGE(1), spi_message) < 0) 
-    {
-        perror("Error writing SPI data");
-        abort();
-    }
-}
-
-/******************* read_device **************************
-***********************************************************
-Operation: Select RaspberryPi's SPI channel and read data from device;
-Input Parameters: requisition code and length of data to be written;
-Output: Message in case of error;
-*/
-void SPI_Communication::read_device(int requisitionCode, int readLength)
-{
-    // Input and Output Control Structure
-    struct spi_ioc_transfer spiMessage[1];
-
-    // Store in memory
-    memset(spi_message, 0, sizeof(spi_message));
-
-    // Configures the structure with the values of the request code of the word and its length to be read from the device
-    spiMessage[0].rx_buf = (unsigned long)requisitionCode;
-    spiMessage[0].len = readLength;
-
-    // Writes the data and prints a message in case of error
-    if (ioctl(m_spifd, SPI_IOC_MESSAGE(1), spi_message) < 0) 
-    {
-        perror("Error reading SPI data");
-        abort();
-    }
-}
-
-/******************* set_operation_mode **************************
-******************************************************************
-Operation: Configures the SPI mode;
-Input Parameters: SPI operating mode;
-Output: Message in case of error;
-*/
-int SPI_Communication::set_operation_mode(int operationMode)
-{
-    this->mode = operationMode;
-    error = octl(this->fileName, SPI_IOC_WR_MODE, &this->operationMode);
-	if (error < 0){
+    this->operationMode = operationMode;
+    if (ioctl(this->file, SPI_IOC_WR_MODE, &this->operationMode) < 0){
 		perror("SPI: Can't set SPI mode.");
 		return -1;
 	}
-
-    error = ioctl(this->fileName, SPI_IOC_RD_MODE, &this->operationMode);
-	if (error < 0){
+	if (ioctl(this->file, SPI_IOC_RD_MODE, &this->operationMode)  < 0){
 		perror("SPI: Can't get SPI mode.");
 		return -1;
 	}
-
 	return 0;
 }
 
-/******************* set_communication_speed **************************
-***********************************************************************
-Operation: Configures the SPI communication speed;
-Input Parameters: SPI communication speed;
-Output: Message in case of error;
-*/
-int SPI_Communication::set_communication_speed(uint32_t communicationSpeed)
-{
-    this->communicationSpeed = communicationSpeed;
-
-    error = ioctl(this->fileName, SPI_IOC_WR_MAX_SPEED_HZ, &this->communicationSpeed);
-	if(error < 0){
-		perror("SPI: Can't set max speed HZ");
-		return -1;
-	}
-
-    error = ioctl(this->fileName, SPI_IOC_RD_MAX_SPEED_HZ, &this->communicationSpeed);
-	if(error < 0){
-		perror("SPI: Can't get max speed HZ.");
-		return -1;
-	}
-
-	return 0;
-}
-
-/******************* set_bits_per_word **************************
-*****************************************************************
-Operation: Configures the number of bits per word;
-Input Parameters: Bits per word;
-Output: Message in case of error;
-*/
 int SPI_Communication::set_bits_per_word(uint8_t bitsPerWord)
 {
     this->bitsPerWord = bitsPerWord;
-
-    error = ioctl(this->fileName, SPI_IOC_WR_BITS_PER_WORD, &this->bitsPerWord);
-	if(error < 0){
+    if (ioctl(this->file, SPI_IOC_WR_BITS_PER_WORD, &this->bitsPerWord) < 0){
 		perror("SPI: Can't set bits per word.");
 		return -1;
 	}
-
-    error = ioctl(this->file, SPI_IOC_RD_BITS_PER_WORD, &this->bitsPerWord);
-	if(error < 0){
+	if (ioctl(this->file, SPI_IOC_RD_BITS_PER_WORD, &this->bitsPerWord) < 0){
 		perror("SPI: Can't get bits per word.");
 		return -1;
 	}
-	return 0
+	return 0;
 }
+
+int SPI_Communication::set_communication_speed(uint32_t communicationSpeed)
+{
+    this->communicationSpeed = communicationSpeed;
+    if (ioctl(this->file, SPI_IOC_WR_MAX_SPEED_HZ, &this->communicationSpeed) < 0){
+		perror("SPI: Can't set max speed HZ");
+		return -1;
+	}
+	if (ioctl(this->file, SPI_IOC_RD_MAX_SPEED_HZ, &this->communicationSpeed) < 0){
+		perror("SPI: Can't get max speed HZ.");
+		return -1;
+	}
+	return 0;
+}
+
+void SPI_Communication::debugDumpRegisters(unsigned int registers = 0xff)
+{
+    cout << "SPI Mode: " << this->operationMode << endl;
+	cout << "Bits per word: " << (int)this->bitsPerWord << endl;
+	cout << "Max speed: " << this->communicationSpeed << endl;
+	cout << "Dumping Registers for Debug Purposes:" << endl;
+	unsigned char *registers = this->read_registers_device(number);
+	for(int i=0; i<(int)number; i++){
+		cout << HEX(*(registers+i)) << " ";
+		if (i%16==15) cout << endl;
+	}
+	cout << dec;
+}
+
+
+
+
+
+
+
+
+
+
 
 /******************* close_spi_communication **************************
 ***********************************************************************
