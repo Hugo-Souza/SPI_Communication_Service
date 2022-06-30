@@ -1,7 +1,11 @@
 #ifndef SPI_COMMUNICATION_SERVICE_H_INCLUDED
 #define SPI_COMMUNICATION_SERVICE_H_INCLUDED
 
+#include "Bus_Device_Service.h"
 #include <iostream>
+#include <sstream>
+#include <iomanip>
+#include <cstring>
 #include <string.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -9,29 +13,28 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
+#include <getopt.h>
 #include <sys/ioctl.h>
+#include <linux/types.h>
 #include <linux/spi/spidev.h>
 #include <wiringPi.h>
-#include "Bus_Device_Service.h"
-
 
 #define SPI_PATH "/dev/spidev"
+#define HEX(x) setw(2) << setfill('0') << hex << (int)(x)
 using namespace std;
 
 class SPI_Communication:BUS_Device
 {
 public:
-    enum SPI_mode{
-        MODE0 = 0,
-        MODE1 = 1,
-        MODE2 = 2,
-        MODE3 = 3
+    //  The SPI Mode 
+    enum SPI_mode
+    {
+        MODE0 = 0, // Low at idle, capture on rising clock edge
+        MODE1 = 1, // Low at idle, capture on falling clock edge
+        MODE2 = 2, // High at idle, capture on falling clock edge
+        MODE3 = 3  // High at idle, capture on rising clock edge 
     };
 
-private:
-    std::string fileName;
-
-public:
     // Constructor
     SPI_Communication(unsigned int channel, unsigned int device, SPI_Communication::SPI_mode operationMode, uint8_t bitsPerWord, uint32_t communicationSpeed, uint16_t communicationDelay);
 
@@ -51,22 +54,22 @@ public:
     virtual void disable_device_communication(unsigned int devicePinSelector);
 
     // Communication of read/write message to spi device
-    virtual int transfer_message(unsigned char messageRead[], unsigned char messageWrite[], int messageLength);
+    virtual int transfer_message(unsigned char sendMessage[], unsigned char receiveMessage[], int lengthMessage);
 
     // Read a char from register containing the message from spi device
     virtual unsigned char read_register_device(unsigned int registerAddress);
 	
     // Read a sequence of char from register containing the message from spi device
-    virtual unsigned char* read_registers_device(unsigned int registerNumber, unsigned int fromAddress=0);
+    virtual unsigned char* read_registers_device(unsigned int lengthData, unsigned int fromAddress=0);
     
     // Write a char to the addressed register of spi device
-    virtual int write_register_device(unsigned int registerAddress, unsigned char value);
+    virtual int write_register_device(unsigned int registerAddress, unsigned char data);
 
     // Write a char to the spi device
-    virtual int write_device(unsigned char value);
+    virtual int write_device(unsigned char data);
 
     // Write the sequence of char to the spi device
-    virtual int write_device(unsigned char value[], int length);
+    virtual int write_device(unsigned char data[], int lengthData);
 
     // Sets the operating mode of spi device
     virtual int set_operation_mode(SPI_Communication::SPI_mode operationMode);
@@ -78,9 +81,10 @@ public:
     virtual int set_communication_speed(uint32_t communicationSpeed);
 
     // Checks all parameters of the spi device
-   virtual void debugDumpRegisters(unsigned int numberRegister = 0xff);
+   virtual void debug_dump_registers(unsigned int numberOfRegisters = 0xff);
 
 private:
+    std::string fileName;
     SPI_mode operationMode;
     uint8_t bitsPerWord;
     uint16_t communicationDelay;

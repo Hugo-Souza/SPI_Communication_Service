@@ -20,16 +20,16 @@ public:
     virtual unsigned char read_register_device(unsigned int registerAddress) = 0;
 	
     // Read a sequence of char from register containing the device message
-    virtual unsigned char* read_registers_device(unsigned int numberOfChars, unsigned int fromAddress = 0) = 0;
+    virtual unsigned char* read_registers_device(unsigned int lengthData, unsigned int fromAddress = 0) = 0;
 	
     // Write the value to the device
-    virtual int write_device(unsigned char value) = 0;
+    virtual int write_device(unsigned char data) = 0;
 	
     // Write the value to the addressed register
-    virtual int write_register_device(unsigned int registerAddress, unsigned char value) = 0;
+    virtual int write_register_device(unsigned int registerAddress, unsigned char data) = 0;
 	
     // Performs a parameter check of the device registers
-    virtual void debug_dump_registers_device(unsigned int number = 0xff) = 0;
+    virtual void debug_dump_registers_device(unsigned int numberOfRegisters = 0xff) = 0;
 
 protected:
     unsigned int channel;
