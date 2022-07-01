@@ -18,12 +18,14 @@
 #include <linux/types.h>
 #include <linux/spi/spidev.h>
 #include <wiringPi.h>
+#include "Bus_Device_Service.h"
 
 #define SPI_PATH "/dev/spidev"
 #define HEX(x) setw(2) << setfill('0') << hex << (int)(x)
 using namespace std;
 
-class SPI_Communication:BUS_Device
+
+class SPI_Communication
 {
 public:
     //  The SPI Mode 
