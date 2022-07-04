@@ -9,15 +9,18 @@ Output: Nothing;
 */
 SPI_Communication::SPI_Communication(unsigned int channel, unsigned int device, SPI_Communication::SPI_mode operationMode, uint8_t bitsPerWord, uint32_t communicationSpeed, uint16_t communicationDelay):BUS_Device(channel, device)
 {
+	// Creating string referring to the spi device directory
     stringstream s;
     s << SPI_PATH << channel << "." << device;
 
+	// Setting all spi communication parameters
     this->fileName = string(s.str());
     this->operationMode = operationMode;
     this->bitsPerWord = bitsPerWord;
     this->communicationDelay = communicationDelay;
     this->communicationSpeed = communicationSpeed;
 
+	// Initiating connection to the device
     this->open_connection();
 }
 
@@ -30,6 +33,7 @@ Output: Nothing;
 */
 SPI_Communication::~SPI_Communication()
 {
+	// Terminates the connection to the device
     this->close_connection();
 }
 
@@ -42,6 +46,7 @@ Output: 0 if the connection was made or -1 otherwise;
 */
 int SPI_Communication::open_connection()
 {
+	// Opening the spi device file and checking its status
 	//cout << "Opening the file: " << fileName.c_str() << endl;
     if((this->file = ::open(fileName.c_str(), O_RDWR)) < 0)
 	{
@@ -49,18 +54,21 @@ int SPI_Communication::open_connection()
         return -1;
     }
 
+	// Setting the operating mode
     if(this->set_operation_mode(this->operationMode) < 0)
 	{
         perror("SPI: Can't set operation mode.");
         return -1;
     } 
 
+	// Setting the bits per word
     if(this->set_bits_per_word(this->bitsPerWord) < 0)
 	{
         perror("SPI: Can't set bits per word.");
         return -1;
     }
 
+	// Setting speed of communication
     if(this->set_communication_speed(this->communicationSpeed) < 0){
         perror("SPI: Can't set communication speed.");
         return -1;
@@ -77,6 +85,7 @@ Output: Nothing;
 */
 void SPI_Communication::close_connection()
 {
+	// Closes the device file and signals that it has been closed
     ::close(this->file);
     this->file = -1;
 }
@@ -89,10 +98,13 @@ Output: Nothing;
 */
 void SPI_Communication::enable_device_communication(unsigned int devicePinSelector)
 {
+	// Initializing wiringpi library setup
     wiringPiSetup();
 
+	// Set gpio pin as output
     pinMode(devicePinSelector, OUTPUT);
 
+	// Writes the LOW value to the gpio pin
     digitalWrite(devicePinSelector, LOW);
 }
 
@@ -105,10 +117,13 @@ Output: Nothing;
 */
 void SPI_Communication::disable_device_communication(unsigned int devicePinSelector)
 {
+	// Initializing wiringpi library setup
     wiringPiSetup();
 
+	// Set gpio pin as output
     pinMode(devicePinSelector, OUTPUT);
 
+	// Writes the HIGH value to the gpio pin
     digitalWrite(devicePinSelector, HIGH);
 }
 
@@ -122,8 +137,10 @@ Output: 0 if data transfer has been done or -1 otherwise;
 */
 int SPI_Communication::transfer_message(unsigned char sendMessage[], unsigned char receiveMessage[], int lengthMessage)
 {
+	// Start spi I/O control struct
     struct spi_ioc_transfer transfer;
 
+	// Setting the struct parameters according to the connection parameters
     transfer.tx_buf = (unsigned long) sendMessage;
 	transfer.rx_buf = (unsigned long) receiveMessage;
     transfer.len = lengthMessage;
@@ -131,6 +148,7 @@ int SPI_Communication::transfer_message(unsigned char sendMessage[], unsigned ch
 	transfer.bits_per_word = this->bitsPerWord;
 	transfer.delay_usecs = this->communicationDelay;
 
+	// Send the spi message and check the bounce status
     int status = ioctl(this->file, SPI_IOC_MESSAGE(1), &transfer);
 	if(status < 0) 
 	{
