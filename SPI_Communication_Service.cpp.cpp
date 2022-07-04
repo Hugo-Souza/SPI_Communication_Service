@@ -343,25 +343,3 @@ void SPI_Communication::debug_dump_registers(unsigned int numberOfRegisters = 0x
 
 	cout << dec;
 }
-
-
-
-
-
-
-
-
-
-
-
-/******************* close_spi_communication **************************
-***********************************************************************
-Operation: Closes communication with the SPI;
-Input Parameters: Nothing;
-Output: Nothing;
-*/
-void SPI_Communication::close_spi_communication()
-{
-    ::close(this->fileName);
-    this->fileName = -1;
-}
