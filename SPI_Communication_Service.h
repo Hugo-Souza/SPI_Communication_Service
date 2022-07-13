@@ -56,7 +56,7 @@ public:
     virtual void disable_device_communication(unsigned int devicePinSelector);
 
     // Communication of read/write message to spi device
-    virtual int transfer_message(unsigned char sendMessage[], unsigned char receiveMessage[], int lengthMessage);
+    virtual int transfer_message(unsigned char sendMessage[], unsigned char receiveMessage[], unsigned int lengthMessage);
 
     // Read a char from register containing the message from spi device
     virtual unsigned char read_register_device(unsigned int registerAddress);
@@ -71,7 +71,7 @@ public:
     virtual int write_device(unsigned char data);
 
     // Write the sequence of char to the spi device
-    virtual int write_device(unsigned char data[], int lengthData);
+    virtual int write_device(unsigned char data[], unsigned int lengthData);
 
     // Sets the operating mode of spi device
     virtual int set_operation_mode(SPI_Communication::SPI_mode operationMode);

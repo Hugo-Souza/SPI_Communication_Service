@@ -135,7 +135,7 @@ Input Parameters:Array containing the messages (data) to be sent and received
 				 by the SPI device and their size;
 Output: 0 if data transfer has been done or -1 otherwise;
 */
-int SPI_Communication::transfer_message(unsigned char sendMessage[], unsigned char receiveMessage[], int lengthMessage)
+int SPI_Communication::transfer_message(unsigned char sendMessage[], unsigned char receiveMessage[], unsigned int lengthMessage)
 {
 	// Start spi I/O control struct
     struct spi_ioc_transfer transfer;
@@ -227,7 +227,7 @@ int SPI_Communication::write_register_device(unsigned int registerAddress, unsig
 /************************ write_device ***************************
 ******************************************************************
 Operation: Write a single data to SPI device;
-Input Parameters: Array containing the data to be written to the SPI device;
+Input Parameters: Data to be written to the SPI device;
 Output: 0 if the data was written to the device or -1 otherwise;
 */
 int SPI_Communication::write_device(unsigned char data)
@@ -247,7 +247,7 @@ Operation: Write a sequence of data to SPI device;
 Input Parameters: Array containing the data to be written to the SPI device and its size;
 Output: 0 if the data was written to the device or -1 otherwise;
 */
-int SPI_Communication::write_device(unsigned char data[], int lengthData)
+int SPI_Communication::write_device(unsigned char data[], unsigned int lengthData)
 {
     unsigned char null_return = 0x00;
 	
